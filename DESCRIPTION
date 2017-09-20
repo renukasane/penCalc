@@ -1,0 +1,16 @@
+Package: penCalc
+Version: 0.1-1
+Date: 2016-06-13
+Type: Package
+Title: A package to simulate the monthly pension received by a person
+Authors@R: c(person("Renuka", "Sane", email = "renukas@gmail.com", role = c("aut","cre")))
+Author: Renuka Sane <renukas@gmail.com>, Arjun Gupta <arjung93@gmail.com>
+Maintainer: Arjun Gupta <arjung93@gmail.com>
+Depends:
+    R (>= 3.2.5)
+Imports: xtable,zoo,reshape,grid
+Description: A package to simulate the expected monthly pension at retirement. The simulations require assumptions on wages, contribution rate, inflation, investment portfolio consisting of government bonds, corporate bonds, equities, expected returns on each asset class, and annuity prices.
+License: GPL (>= 2)
+RoxygenNote: 6.0.1
+Suggests: knitr
+VignetteBuilder: knitr

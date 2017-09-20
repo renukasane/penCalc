@@ -1,0 +1,333 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{graphicx}
+\usepackage{fullpage}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage[hang,splitrule, flushmargin]{footmisc}
+\usepackage{lipsum} 
+\usepackage{alltt}
+\usepackage{float}
+\usepackage{tabls}
+\usepackage{subfigure}
+\usepackage{parskip}
+\usepackage[tableposition=top]{caption}
+\usepackage[style=long, nonumberlist, acronym]{glossaries}
+\usepackage{hyperref}
+\usepackage{pdfpages}
+\usepackage{rotating}
+%\usepackage{draftwatermark}
+\usepackage[tableposition=top]{caption}
+ \usepackage{enumitem}
+\renewcommand{\labelenumi}{\arabic{enumi}.} 
+\renewcommand{\labelenumii}{\arabic{enumi}.\arabic{enumii}}
+
+\floatstyle{ruled}
+\restylefloat{table}
+\restylefloat{figure} 
+\newcommand{\floatintro}[1]{
+
+  \vspace*{0.1in}
+
+
+ {\footnotesize
+
+    #1
+
+    }
+
+  \vspace*{0.1in}
+}
+\title{Simulating pension outcomes using penCalc}
+\author{Renuka Sane, Arjun Gupta \\
+National Institute of Public Finance and Policy}
+% \VignetteIndexEntry{Examples of penCalc package}
+% \VignetteDepends{}  
+% \VignettePackage{penCalc}
+%\VignetteEngine{knitr::knitr}
+\begin{document}
+
+
+\maketitle
+
+\section{Introduction}
+
+This packages provides a function to simulate pension outcomes from a
+DC pension sytsem. The baseline assumptions used reflect the
+macroeconomic conditions in India, as well as the rules surrounding
+the National Pension System (NPS).\footnote{The NPS is a defined
+  contribution individual account retirement system, that was
+  implemented for all new recruits into central government, starting
+  from 1 January 2004. In this scheme, employees contribute 10\% of
+  their income, and the Government in its role as an employer, matches
+  it with another 10\%. These are then invested in select pension fund
+  managers (PFMs). A 40\% annuitisation rate has been made mandatory,
+  and the remaining 60\% can be withdrawn as lumpsum on
+  retirement. The NPS is also available to citizens of India on a
+  voluntary basis.} The set of assumptions is as follows:
+
+\begin{table}
+  \caption{Assumptions for penCalc} \label{t:assumptions}
+  \begin{center}
+    {\footnotesize
+      \begin{tabular}{lr}
+        Age of entry & 25 \\
+        Age of exit & 60 \\
+        Starting wage & Rs.25,000 per month. \\
+        Wage growth (nominal) & 8\% per anum \\
+        Contribution rate & 20\% of wage \\
+        Inflation (mean, sd) & (4\%, 0) \\
+        Investment portfolio & Lifecyle \\
+        Returns (nominal) & \\
+        GOI bonds (mean, sd) & (7\%, 0) \\
+        Corporate bonds (mean, sd) & (10\%, 0) \\
+        Equities (mean, sd) & (16\%, 25\%) \\
+        Fees & 100 \\
+        AUM & 0.01\% \\
+        Flat fee & Rs.100 p.a. \\        
+        Percent to be annuitised & 40\% \\
+        Annuity price (nominal annuity) & Rs.4,087 \\
+      \end{tabular}
+      }
+  \end{center}
+\end{table}
+
+All of these assumptions can be changed. In particular, the user can
+use a vector of wages instead of a single wage and wage growth number
+to reflect the wage trajectory of an informal sector worker. The user
+can also input a vector of contributions, instead of a single
+contribution rate, to reflect inability to contribute regularly.
+
+\subsection{The working on the model} \label{ss:working}
+
+The model proceeds as follows. The starting wage and the yearly growth
+rate in wages are used to generate a vector of wages for the years the
+subscriber is expected to be in the system. The number of years are
+calculated as the difference between age of entry and exit. In this
+particular instance, the number of years is 60-25+1, that is 36 years.
+
+The contribution rate is then used on this vector of wages to arrive
+at the rupee value of contributions each year in the pension
+system. The wages are expected to stay the same in each month of the
+year. If the user has entered the ``real'' option, then the rate of
+inflation is subtracted from the wages to arrive at a vector of
+contributions in real terms.
+
+The mean and standard deviations of the underlying instruments (bonds
+and equity) are used to simulate returns on the investment each year
+as a draw from a normal distribution. The returns are annualised
+figures, and are converted to monthly returns. The investment weights
+and returns are used to arrive at a portfolio return. A set of
+lifecycle weights determine the composition of the portfolio.
+
+The monthly fees and expenses are deducted from the portfolio
+returns. The contributions and returns are accumulated over each year
+in the system, and gives us the total expected accumulation in the
+pension account.
+
+This simulation is done 1000 times, and thus generates a distribution
+of the expected accumulated amounts in the pension account. The amount
+to be annuitised is subtracted from this accumulation and used to
+arrive at the monthly expected pension using the annuity price. The
+model has the following outputs.
+
+\begin{description}
+  \item [In hand accumulation] This is the average amount of lumpsum
+    withdrawal that the retiree can take. In the case of 40\%
+    annuitisation, this is the remainder 60\% of the total accumulated
+    balances. In the case of full annuitisation, this amount will be
+    zero, as the entire accumulation is turned into an annuity.
+
+  \item [Monthly pension] This is the rupee value of the average
+    monthly pension the retiree can expect to get after the purchase
+    of the annuity.
+
+  \item [Replacement rate] This is the ratio of the pension to the
+    last drawn wage. The replacement rate only makes sense for
+    government employees - for those with varied contributions over
+    the lifetime, it is not sensible to divide the pension with the
+    last wage. The replacement rate should be ignored for subscribers
+    other than regular salaried employees.
+\end{description}    
+
+\section{Examples} \label{s:examples}
+
+\subsection{ Portfolio weights: 85\% bonds, 15\% equity}
+\label{ss:baseline}
+
+The following example provides a demo of the broad current portfolio
+composition in the Indian pension scheme. This is an investment
+allocation between government bonds and equity of 85\% and 15\%
+respectively.  The rest of the assumptions are as described in Table
+\ref{t:assumptions}.
+
+The R-code for the 40\% annuitisation example is shown below.  Since
+we are using all the default values and only changing the investment
+weights (as the default weights are the lifecycle model), we only
+change that parameter in the model. There are two elements in each of
+the investment weights specification (\texttt{weightmatrix)}: the
+annualised rate of return (for example 0.85 in the case of government
+bonds), and the number of years the calculation is to be done for
+(36). The code for the 100\% annuitisation case will require the
+specification of one more parameter, as the default annuitisation rate
+is 40\%. The example shows the use of ``real'' values.
+
+  
+<<ex1 >>=
+library(penCalc)
+options(scipen=22)
+weightmatrix <- data.frame(goi_bonds=rep(0.85, 36), 
+                           corp_bonds=rep(0,36),
+                           equity=rep(0.15,36))
+set.seed(111)
+# 40% annuity
+x <- pencalc(inflation=list(c(0.04, 0),
+                            real=TRUE),
+             inv.weights=list(weightmatrix))
+
+# 100% annuity
+y <- pencalc(inflation=list(c(0.04, 0),
+                            real=TRUE),
+             inv.weights=list(weightmatrix),
+             annuity=list(proportion.annuitised=1,
+                          value=4087))
+y
+@ 
+  
+\subsection{Life-cycle portfolio allocation} \label{ss:lifecycleN}
+
+The following example provides a demo of life-cycle portfolio
+allocation. The simulation uses the default life-cycle weights for
+allocation of contributions towards the three asset
+classes.\footnote{The allocation is provided in the Appendix} All
+other assumptions remain the same. As we are using all the default
+values of the function, the R-code requires us to just run the
+\texttt{pencalc} function for the 40\% annuitisation case, and add the
+100\% annuitisation parameter when required. The code also needs to
+indicate the use of the ``real'' option if calculations are to be done
+in real terms.
+
+<<ex2 >>=
+set.seed(111)
+# 40% annuity
+x <- pencalc(inflation=list(c(0.04,0)
+                           ,real=TRUE))
+x
+
+# 100% annuity
+y <- pencalc(inflation=list(c(0.04,0)
+                           ,real=TRUE),
+             annuity=list(proportion.annuitised=1,
+                          price=4087))
+y
+@ 
+
+\subsection{The role of equity} \label{ss:equityN}
+
+An aggressive scheme of investment that has been considered by the
+Government is where 25 percent of the assets would be held in
+Government paper, 25 percent in investment grade corporate bonds and
+50 percent in equity. We present a simulation using these investment
+guidelines.
+
+
+<<ex3>>=
+
+weightmatrix <- data.frame(goi_bonds=rep(0.25, 36), 
+                           corp_bonds=rep(0.25,36),
+                           equity=rep(0.50,36))
+
+set.seed(111)
+# 40% annuity
+x <- pencalc(inflation=list(c(0.04,0)
+                           ,real=TRUE),
+             inv.weights=list(weightmatrix))
+
+@  
+
+
+\subsection{Varying contribution rates} \label{ss:vary_contr}
+
+In the case of informal sector workers, a constant contribution rate
+may not be feasible. This can be handled by using a vector of wages,
+and a contribution rate of 100\%. This effectively makes the values
+entered in the wage the actual contribution. 
+
+In the example described below, we simulate 36 values for wage from a
+normal distribution with a mean of Rs.3,000 and a standard deviation
+of 100. The generated wage profile is presented in the appendix. We
+then use a contribution rate of 100\%. All the other assumptions
+remain the same as that of the life-cycle portfolio allocation example
+described in Section \ref{ss:lifecycleN}.
+
+<<ex5>>=
+library(penCalc)
+
+wage = round(rnorm(36, 3000, 100),0) 
+set.seed(111)
+x <- pencalc(wage=list(wage
+                 ,0
+                 ,1
+                 ,initial.amount=0),
+             inflation=list(c(0.04,0)
+                 ,real=TRUE))
+x
+
+@ 
+
+\newpage
+\section*{Appendix}
+The default weights in the lifecycle allocation are as follows:
+\begin{center}
+  \begin{scriptsize}
+    \begin{tabular}{rrrr}
+  \hline
+ & goi\_bonds & corp\_bonds & equity \\ 
+  \hline
+25 & 0.10 & 0.25 & 0.65 \\ 
+  26 & 0.10 & 0.25 & 0.65 \\ 
+  27 & 0.10 & 0.25 & 0.65 \\ 
+  28 & 0.10 & 0.25 & 0.65 \\ 
+  29 & 0.10 & 0.25 & 0.65 \\ 
+  30 & 0.10 & 0.25 & 0.65 \\ 
+  31 & 0.10 & 0.25 & 0.65 \\ 
+  32 & 0.10 & 0.25 & 0.65 \\ 
+  33 & 0.10 & 0.25 & 0.65 \\ 
+  34 & 0.10 & 0.25 & 0.65 \\ 
+  35 & 0.10 & 0.25 & 0.65 \\ 
+  36 & 0.13 & 0.24 & 0.63 \\ 
+  37 & 0.16 & 0.24 & 0.61 \\ 
+  38 & 0.18 & 0.23 & 0.58 \\ 
+  39 & 0.21 & 0.23 & 0.56 \\ 
+  40 & 0.24 & 0.22 & 0.54 \\ 
+  41 & 0.27 & 0.21 & 0.52 \\ 
+  42 & 0.30 & 0.21 & 0.50 \\ 
+  43 & 0.32 & 0.20 & 0.47 \\ 
+  44 & 0.35 & 0.20 & 0.45 \\ 
+  45 & 0.38 & 0.19 & 0.43 \\ 
+  46 & 0.41 & 0.18 & 0.41 \\ 
+  47 & 0.44 & 0.18 & 0.39 \\ 
+  48 & 0.46 & 0.17 & 0.36 \\ 
+  49 & 0.49 & 0.17 & 0.34 \\ 
+  50 & 0.52 & 0.16 & 0.32 \\ 
+  51 & 0.55 & 0.15 & 0.30 \\ 
+  52 & 0.58 & 0.15 & 0.28 \\ 
+  53 & 0.60 & 0.14 & 0.25 \\ 
+  54 & 0.63 & 0.14 & 0.23 \\ 
+  55 & 0.66 & 0.13 & 0.21 \\ 
+  56 & 0.69 & 0.12 & 0.19 \\ 
+  57 & 0.72 & 0.12 & 0.17 \\ 
+  58 & 0.74 & 0.11 & 0.14 \\ 
+  59 & 0.77 & 0.11 & 0.12 \\ 
+  60 & 0.80 & 0.10 & 0.10 \\ 
+   \hline
+\end{tabular}
+
+  \end{scriptsize}  
+\end{center}
+
+
+\end{document}
+
+
+
+
